@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        
+        #gameContainer {
+            text-align: center;
+        }
+        
+        #gameBoard {
+            border: 3px solid;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        
+        #scoreText {
+            font-family: "Permanent Marker", cursive;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        
+        #resetBtn {
+            font-family: "Permanent Marker", cursive;
+            font-size: 18px;
+            width: 100px;
+            height: 40px;
+            border: 4px solid;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        /* Mobile Controls */
+        
+        #mobileControls {
+            display: none;
+            margin-top: 10px;
+        }
+        
+        .controlBtn {
+            width: 60px;
+            height: 60px;
+            font-size: 20px;
+            border-radius: 10px;
+            border: 2px solid;
+            background-color: lightgray;
+            cursor: pointer;
+            margin: 5px;
+        }
+        /* Show mobile controls on smaller screens */
+        
+        @media (max-width: 600px) {
+            #mobileControls {
+                display: block;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main id="gameContainer">
+        <canvas id="gameBoard" width="400" height="400"></canvas>
+        <div id="scoreText">Score: 0</div>
+        <button id="resetBtn">Reset</button>
+        <div id="mobileControls">
+            <div>
+                <button class="controlBtn" id="upBtn">↑</button>
+            </div>
+            <div>
+                <button class="controlBtn" id="leftBtn">←</button>
+                <button class="controlBtn" id="downBtn">↓</button>
+                <button class="controlBtn" id="rightBtn">→</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const gameBoard = document.querySelector("#gameBoard");
+        const ctx = gameBoard.getContext("2d");
+        const scoreText = document.querySelector("#scoreText");
+        const resetBtn = document.querySelector("#resetBtn");
+        const upBtn = document.querySelector("#upBtn");
+        const downBtn = document.querySelector("#downBtn");
+        const leftBtn = document.querySelector("#leftBtn");
+        const rightBtn = document.querySelector("#rightBtn");
+        const gameWidth = gameBoard.width;
+        const gameHeight = gameBoard.height;
+        const boardBackground = "white";
+        const snakeColor = "lightgreen";
+        const snakeBorder = "black";
+        const foodColor = "red";
+        const unitSize = 25;
+        let running = false;
+        let xVelocity = unitSize;
+        let yVelocity = 0;
+        let foodX;
+        let foodY;
+        let score = 0;
+        let snake = [{
+            x: unitSize * 4,
+            y: 0
+        }, {
+            x: unitSize * 3,
+            y: 0
+        }, {
+            x: unitSize * 2,
+            y: 0
+        }, {
+            x: unitSize,
+            y: 0
+        }, {
+            x: 0,
+            y: 0
+        }];
+
+        window.addEventListener("keydown", changeDirection);
+        resetBtn.addEventListener("click", resetGame);
+        upBtn.addEventListener("click", () => changeDirection({
+            key: "ArrowUp"
+        }));
+        downBtn.addEventListener("click", () => changeDirection({
+            key: "ArrowDown"
+        }));
+        leftBtn.addEventListener("click", () => changeDirection({
+            key: "ArrowLeft"
+        }));
+        rightBtn.addEventListener("click", () => changeDirection({
+            key: "ArrowRight"
+        }));
+
+        gameStart();
+
+        function gameStart() {
+            running = true;
+            scoreText.textContent = score;
+            createFood();
+            drawFood();
+            nextTick();
+        }
+
+        function nextTick() {
+            if (running) {
+                setTimeout(() => {
+                    clearBoard();
+                    drawFood();
+                    moveSnake();
+                    drawSnake();
+                    checkGameOver();
+                    nextTick();
+                }, 250);
+            } else {
+                displayGameOver();
+            }
+        }
+
+        function clearBoard() {
+            ctx.fillStyle = boardBackground;
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
+        }
+
+        function createFood() {
+            foodX = randomFood(0, gameWidth - unitSize);
+            foodY = randomFood(0, gameHeight - unitSize);
+        }
+
+        function randomFood(min, max) {
+            const randNum = Math.floor(Math.random() * (max - min) / unitSize) * unitSize + min;
+            return randNum;
+        }
+
+        function drawFood() {
+            ctx.fillStyle = foodColor;
+            ctx.fillRect(foodX, foodY, unitSize, unitSize);
+        }
+
+        function moveSnake() {
+            const head = {
+                x: snake[0].x + xVelocity,
+                y: snake[0].y + yVelocity
+            };
+            snake.unshift(head);
+
+            // Check if the snake has eaten the food
+            if (snake[0].x === foodX && snake[0].y === foodY) {
+                score += 1;
+                scoreText.textContent = score;
+                createFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = snakeColor;
+            ctx.strokeStyle = snakeBorder;
+            snake.forEach(snakePart => {
+                ctx.fillRect(snakePart.x, snakePart.y, unitSize, unitSize);
+                ctx.strokeRect(snakePart.x, snakePart.y, unitSize, unitSize);
+            });
+        }
+
+        function changeDirection(event) {
+            switch (event.key) {
+                case "ArrowUp":
+                    if (yVelocity === 0) {
+                        xVelocity = 0;
+                        yVelocity = -unitSize;
+                    }
+                    break;
+                case "ArrowDown":
+                    if (yVelocity === 0) {
+                        xVelocity = 0;
+                        yVelocity = unitSize;
+                    }
+                    break;
+                case "ArrowLeft":
+                    if (xVelocity === 0) {
+                        xVelocity = -unitSize;
+                        yVelocity = 0;
+                    }
+                    break;
+                case "ArrowRight":
+                    if (xVelocity === 0) {
+                        xVelocity = unitSize;
+                        yVelocity = 0;
+                    }
+                    break;
+            }
+        }
+
+        function checkGameOver() {
+            if (snake[0].x < 0 || snake[0].x >= gameWidth || snake[0].y < 0 || snake[0].y >= gameHeight) {
+                running = false;
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+                    running = false;
+                }
+            }
+        }
+
+        function displayGameOver() {
+            ctx.fillStyle = "black";
+            ctx.font = "50px Arial";
+            ctx.fillText("Game Over", gameWidth / 4, gameHeight / 2);
+        }
+
+        function resetGame() {
+            running = false;
+            score = 0;
+            scoreText.textContent = score;
+            xVelocity = unitSize;
+            yVelocity = 0;
+            snake = [{
+                x: gameWidth / 2,
+                y: gameHeight / 2
+            }];
+            gameStart();
+        }
+    </script>
+</body>
+
+</html>
